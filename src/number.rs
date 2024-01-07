@@ -141,6 +141,10 @@ impl DecimalTuple {
         };
         tmp.map(|x| if sgn_l == Minus { x + 1 } else { x })
     }
+
+    pub fn is_integer(&self) -> bool {
+        self.frac_once.is_empty() && self.frac_rep.is_empty()
+    }
 }
 
 impl std::fmt::Display for DecimalTuple {
