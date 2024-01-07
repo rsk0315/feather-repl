@@ -1,2 +1,2 @@
 # reel
-Floating-point REPL
+Floating-point REPL, Read-Eval-“Error Analysis” Loop.
