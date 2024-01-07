@@ -1,0 +1,16 @@
+[package]
+name = "reel"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.4.13", features = ["derive"] }
+combine = "4.6.6"
+homedir = "0.2.1"
+num = "0.4.1"
+num-bigint = "0.4.4"
+num-rational = "0.4.1"
+rustyline = "13.0.0"
+yansi = "0.5.1"
