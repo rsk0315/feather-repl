@@ -171,7 +171,7 @@ mod tests {
         assert!(actual.is_ok());
 
         assert_eq!(
-            actual.unwrap().0.eval(s, &()).ok(),
+            actual.unwrap().0.eval(s, &Default::default(), 0).ok(),
             Some((("3/5".parse().unwrap(), 0.6), 0..s.len()))
         );
     }

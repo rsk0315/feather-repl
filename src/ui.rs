@@ -6,7 +6,7 @@ use num_rational::BigRational;
 use yansi::Style;
 
 use crate::{
-    ast::{EvalError, EvalOptions, ValueTy},
+    ast::{EvalContext, EvalError, EvalOptions, ValueTy},
     constants::{DARK_COLOR, EMPH_COLOR, ERR_COLOR},
     number::DecimalTuple,
     utils::StrPaint,
@@ -105,7 +105,12 @@ pub fn estimate(
     range: Range<usize>,
     s: &str,
     opts: &EvalOptions,
+    ctx: &EvalContext,
 ) {
+    if !opts.do_estimate(ctx) {
+        return;
+    }
+
     let (rat, flt) = expr;
 
     let msg = format!(

@@ -7,10 +7,10 @@ use reel::repl::{repl, ReplOptions};
 #[command(version)]
 pub struct Args {
     #[arg(short, long)]
-    each_expr: bool,
+    estimate: Vec<String>,
 }
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    repl(ReplOptions::default().with_each_expr(args.each_expr))
+    repl(ReplOptions::default().with_estimate(args.estimate))
 }
