@@ -27,3 +27,13 @@ Install [`git`](https://www.git-scm.com/downloads) and [`cargo`](https://rustup.
 ```sh
 % feather-repl
 ```
+
+## Screenshots
+
+![Screenshot 1](images/screenshot-1.png)
+
+![Screenshot 2](images/screenshot-2.png)
+
+![Screenshot 3](images/screenshot-3.png)
+
+![Screenshot 4](images/screenshot-4.png)
