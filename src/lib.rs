@@ -1,3 +1,4 @@
+pub mod ast;
 pub mod constants;
 pub mod number;
 pub mod parser;
