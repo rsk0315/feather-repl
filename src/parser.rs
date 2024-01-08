@@ -19,6 +19,7 @@ where
     Input: Stream<Token = char> + StreamOnce<Position = PointerOffset<str>>,
 {
     let tok = (
+        optional(char('-')),
         many1(digit()),
         optional((char('.'), many1(digit()))),
         optional(
@@ -36,16 +37,14 @@ where
                 }),
         ),
     );
-    tok.map(
-        |(int, frac, exp): (String, Option<(char, String)>, Option<i32>)| {
-            let mut digits = int;
-            if let Some((_, frac)) = frac {
-                digits += ".";
-                digits.extend(frac.chars());
-            }
-            LitComponent::new(digits, exp.unwrap_or(0))
-        },
-    )
+    tok.map(|(sign, int, frac, exp): (_, String, Option<(char, String)>, _)| {
+        let mut digits = format!("{}{int}", sign.unwrap_or('+'));
+        if let Some((_, frac)) = frac {
+            digits += ".";
+            digits.extend(frac.chars());
+        }
+        LitComponent::new(digits, exp.unwrap_or(0))
+    })
 }
 
 fn op<Input, const N: usize>(
@@ -102,7 +101,16 @@ where
         position(),
     )
         .map(|(pos_l, x, pos_r)| Expr::Paren(Box::new(x), pos_l..pos_r));
-    literal.or(parens)
+    let neg_parens = (
+        position(),
+        (char('-'), spaces(), char('('), spaces())
+            .with(parse_expr())
+            .skip((spaces(), char(')'))),
+        position(),
+    )
+        .map(|(pos_l, x, pos_r)| Expr::NegParen(Box::new(x), pos_l..pos_r));
+
+    attempt(literal).or(parens).or(neg_parens)
 }
 
 parser! {

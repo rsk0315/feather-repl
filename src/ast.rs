@@ -35,7 +35,7 @@ pub enum Expr {
     Add(Box<Expr>, Box<Expr>, Range<PointerOffset<str>>),
     Sub(Box<Expr>, Box<Expr>, Range<PointerOffset<str>>),
     Paren(Box<Expr>, Range<PointerOffset<str>>),
-    Neg(Box<Expr>, Range<PointerOffset<str>>),
+    NegParen(Box<Expr>, Range<PointerOffset<str>>),
 }
 
 pub type EvalOptions = (); // temporary
@@ -91,10 +91,11 @@ impl Expr {
                 let end = range.end.translate_position(s);
                 (inner.0, start..end)
             }
-            Expr::Neg(rhs, range) => {
-                let rhs = rhs.eval(s, opts)?;
-                let range = range.start.translate_position(s)..rhs.1.end;
-                ((-rhs.0.0, -rhs.0.1), range)
+            Expr::NegParen(inner, range) => {
+                let inner = inner.eval(s, opts)?;
+                let start = range.start.translate_position(s);
+                let end = range.end.translate_position(s);
+                ((-inner.0.0, -inner.0.1), start..end)
             }
         };
 
