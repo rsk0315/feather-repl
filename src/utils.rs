@@ -1,11 +1,63 @@
+use std::ops::Range;
+
 use yansi::{Color, Paint, Style};
 
 pub trait StrPaint {
     fn fg(&self, paint: Color) -> Paint<&Self> { paint.paint(self) }
     fn bold(&self) -> Paint<&Self> { Style::default().bold().paint(self) }
+
+    fn paint_at(&self, style: Style, i: usize) -> String;
+    fn paint_range_msg(
+        &self,
+        style: Style,
+        range: Range<usize>,
+        msg: &str,
+    ) -> String;
 }
 
-impl StrPaint for str {}
+impl StrPaint for str {
+    fn paint_at(&self, style: Style, i: usize) -> String {
+        let mut res = self[..i].to_owned();
+        let mut it = self[i..].chars();
+        res.extend(it.next().map(|c| style.paint(c).to_string()));
+        res.extend(it);
+        res
+    }
+
+    fn paint_range_msg(
+        &self,
+        style: Style,
+        range: Range<usize>,
+        msg: &str,
+    ) -> String {
+        let Range { start, end } = range;
+        let mut res = format!(
+            "{}{}{}\n",
+            &self[..start],
+            style.paint(&self[start..end]),
+            &self[end..]
+        );
+        let left = if end - start > 2 { 1 } else { 0 };
+        let right = end - start - (left + 1);
+        let line1 = format!(
+            "{0}{1}{2}{3}",
+            " ".repeat(start),
+            "─".repeat(left),
+            "┬",
+            "─".repeat(right)
+        );
+        let line2 = format!(
+            "{0}{1}{2}{3}",
+            " ".repeat(start),
+            " ".repeat(left),
+            "╰",
+            "─".repeat(2)
+        );
+        let color = Style::default().fg(style.fg_color()).bg(style.bg_color());
+        res += &format!("{}\n{} {msg}", color.paint(line1), color.paint(line2));
+        res
+    }
+}
 
 pub trait IterDiffIndex<T: PartialEq>: Iterator<Item = T> {
     fn iter_diff_index<I: Iterator<Item = T>>(self, other: I) -> Option<usize>;

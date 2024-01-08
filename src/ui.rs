@@ -1,10 +1,11 @@
 use std::ops::Range;
 
 use combine::{easy::Errors, stream::PointerOffset};
+use yansi::Style;
 
 use crate::{
-    ast::{EvalOptions, ValueTy},
-    constants::{DARK_COLOR, EMPH_COLOR},
+    ast::{EvalError, EvalOptions, ValueTy},
+    constants::{DARK_COLOR, EMPH_COLOR, ERR_COLOR},
     number::DecimalTuple,
     utils::StrPaint,
 };
@@ -27,6 +28,38 @@ pub fn str_emph_correct(approx: &DecimalTuple, truth: &DecimalTuple) -> String {
     }
 }
 
+pub fn frontmatter(filename: &str, lineno: usize) {
+    eprintln!(
+        "{}{filename}:{lineno}{}",
+        " ╭─[".fg(DARK_COLOR),
+        "]".fg(DARK_COLOR)
+    );
+}
+
+pub fn backmatter(s: &str, result: Result<(ValueTy, Range<usize>), EvalError>) {
+    match result {
+        Ok(_) => eprintln!("{}", "─╯".fg(DARK_COLOR).dimmed()),
+        Err(e) => {
+            let mut out = "\n".to_owned();
+            out += &match e {
+                EvalError::ZeroDivision(range) => s.paint_range_msg(
+                    ERR_COLOR.style().bold(),
+                    range,
+                    "divide by zero",
+                ),
+            };
+            lined(&out, |_| ERR_COLOR.style().dimmed());
+            eprintln!("{}", "─╯".fg(ERR_COLOR).dimmed());
+        }
+    }
+}
+
+fn lined(lines: &str, style: impl Fn(usize) -> Style) {
+    for (i, line) in lines.lines().enumerate() {
+        eprintln!(" {} {line}", style(i).paint("│"));
+    }
+}
+
 pub fn estimate(
     expr: &ValueTy,
     range: Range<usize>,
@@ -34,20 +67,28 @@ pub fn estimate(
     opts: &EvalOptions,
 ) {
     let (rat, flt) = expr;
-    eprintln!("{s}");
-    eprintln!(
-        "{0}{1:~^2$}",
-        " ".repeat(range.start),
-        '^',
-        range.end - range.start
+
+    let msg =
+        format!("default output: {}", EMPH_COLOR.style().bold().paint(flt));
+
+    let mut out = "\n".to_owned();
+    out += &format!(
+        "{}",
+        s.paint_range_msg(EMPH_COLOR.style().bold(), range, &msg)
     );
+
+    lined(&out, |i| {
+        if i == 1 { DARK_COLOR.style() } else { DARK_COLOR.style().dimmed() }
+    });
 }
 
 pub fn error_report(err: Errors<char, &str, PointerOffset<str>>, s: &str) {
-    eprintln!("position: {}", err.position.translate_position(s));
+    let pos = err.position.translate_position(s);
+    eprintln!("{}", s.paint_at(ERR_COLOR.style().bold(), pos));
+    eprintln!("{0:>1$}", "^".fg(ERR_COLOR), pos + 1);
     eprintln!("errors:");
     for e in err.errors {
-        println!("{e}");
+        println!("{}", e.to_string().fg(ERR_COLOR));
     }
 }
 

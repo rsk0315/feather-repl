@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use combine::stream::PointerOffset;
-use num::FromPrimitive;
+use num::{FromPrimitive, Zero};
 use num_rational::BigRational;
 
 use crate::{number::DecimalTuple, ui::estimate};
@@ -41,8 +41,17 @@ pub enum Expr {
 pub type EvalOptions = (); // temporary
 pub type ValueTy = (BigRational, f64);
 
+#[derive(Debug)]
+pub enum EvalError {
+    ZeroDivision(Range<usize>),
+}
+
 impl Expr {
-    pub fn eval(self, s: &str, opts: &EvalOptions) -> (ValueTy, Range<usize>) {
+    pub fn eval(
+        self,
+        s: &str,
+        opts: &EvalOptions,
+    ) -> Result<(ValueTy, Range<usize>), EvalError> {
         let (val, range) = match self {
             Expr::Literal(lit, range) => {
                 let start = range.start.translate_position(s);
@@ -50,43 +59,46 @@ impl Expr {
                 (lit.eval(), start..end)
             }
             Expr::Mul(lhs, rhs, _) => {
-                let lhs = lhs.eval(s, opts);
-                let rhs = rhs.eval(s, opts);
+                let lhs = lhs.eval(s, opts)?;
+                let rhs = rhs.eval(s, opts)?;
                 let range = lhs.1.start..rhs.1.end;
                 ((lhs.0.0 * rhs.0.0, lhs.0.1 * rhs.0.1), range)
             }
             Expr::Div(lhs, rhs, _) => {
-                let lhs = lhs.eval(s, opts);
-                let rhs = rhs.eval(s, opts);
+                let lhs = lhs.eval(s, opts)?;
+                let rhs = rhs.eval(s, opts)?;
                 let range = lhs.1.start..rhs.1.end;
+                if rhs.0.0.is_zero() {
+                    return Err(EvalError::ZeroDivision(range));
+                }
                 ((lhs.0.0 / rhs.0.0, lhs.0.1 / rhs.0.1), range)
             }
             Expr::Add(lhs, rhs, _) => {
-                let lhs = lhs.eval(s, opts);
-                let rhs = rhs.eval(s, opts);
+                let lhs = lhs.eval(s, opts)?;
+                let rhs = rhs.eval(s, opts)?;
                 let range = lhs.1.start..rhs.1.end;
                 ((lhs.0.0 + rhs.0.0, lhs.0.1 + rhs.0.1), range)
             }
             Expr::Sub(lhs, rhs, _) => {
-                let lhs = lhs.eval(s, opts);
-                let rhs = rhs.eval(s, opts);
+                let lhs = lhs.eval(s, opts)?;
+                let rhs = rhs.eval(s, opts)?;
                 let range = lhs.1.start..rhs.1.end;
                 ((lhs.0.0 - rhs.0.0, lhs.0.1 - rhs.0.1), range)
             }
             Expr::Paren(inner, range) => {
-                let inner = inner.eval(s, opts);
+                let inner = inner.eval(s, opts)?;
                 let start = range.start.translate_position(s);
                 let end = range.end.translate_position(s);
                 (inner.0, start..end)
             }
             Expr::Neg(rhs, range) => {
-                let rhs = rhs.eval(s, opts);
+                let rhs = rhs.eval(s, opts)?;
                 let range = range.start.translate_position(s)..rhs.1.end;
                 ((-rhs.0.0, -rhs.0.1), range)
             }
         };
 
         estimate(&val, range.clone(), s, opts);
-        (val, range)
+        Ok((val, range))
     }
 }

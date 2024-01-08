@@ -7,7 +7,10 @@ use rustyline::{
 };
 
 use crate::{
-    constants::AUX_COLOR, parser::parse_line, ui::error_report, utils::StrPaint,
+    constants::AUX_COLOR,
+    parser::parse_line,
+    ui::{backmatter, error_report, frontmatter},
+    utils::StrPaint,
 };
 
 pub struct ReplOptions {
@@ -37,7 +40,7 @@ pub fn repl(opts: ReplOptions) -> rustyline::Result<()> {
         eprintln!("No previous history.");
     }
 
-    loop {
+    for nl in 1.. {
         let readline = rl.readline(&">> ".fg(AUX_COLOR).to_string());
         match readline {
             Ok(line) if line.trim().is_empty() => {}
@@ -48,10 +51,9 @@ pub fn repl(opts: ReplOptions) -> rustyline::Result<()> {
                 eprintln!("read: {}", line.bold());
                 rl.add_history_entry(line.to_owned())?;
 
+                frontmatter("stdin", nl);
                 match parse_line().easy_parse(line.as_str()) {
-                    Ok(ast) => {
-                        ast.0.eval(&line, &());
-                    }
+                    Ok(ast) => backmatter(&line, ast.0.eval(&line, &())),
                     Err(e) => {
                         error_report(e, &line);
                     }
