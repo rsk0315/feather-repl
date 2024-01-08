@@ -145,7 +145,7 @@ pub fn estimate(
         str_emph_correct(&d_flt, &d_rat)
     };
     out += &format!("float: {}\n", f);
-    if !rat.is_zero() && flt.is_finite() {
+    if !rat.is_zero() && flt.is_finite() && !flt.is_zero() {
         let d_flt = DecimalTuple::from(BigRational::from_float(*flt).unwrap());
         out += &format!("     = {}\n", str_approx(&d_flt, &d_rat));
     }
