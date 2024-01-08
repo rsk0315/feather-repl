@@ -163,8 +163,8 @@ mod tests {
         assert!(actual.is_ok());
 
         assert_eq!(
-            actual.unwrap().0.eval(s, &()),
-            (("3/5".parse().unwrap(), 0.6), 0..s.len())
+            actual.unwrap().0.eval(s, &()).ok(),
+            Some((("3/5".parse().unwrap(), 0.6), 0..s.len()))
         );
     }
 }
