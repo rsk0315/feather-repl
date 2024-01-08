@@ -18,7 +18,7 @@ Install [`git`](https://www.git-scm.com/downloads) and [`cargo`](https://rustup.
 ```sh
 % cd /path/to/working/dir  # replace appropriately
 % git clone git@github.com:rsk0315/feather-repl.git
-% cargo install --path .
+% cargo install --path feather-repl
 % hash -r  # if needed
 ```
 
