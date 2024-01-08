@@ -1,7 +1,7 @@
 use clap::Parser;
 use rustyline::Result;
 
-use reel::repl::{repl, ReplOptions};
+use feather_repl::repl::{repl, ReplOptions};
 
 #[derive(Parser, Debug)]
 #[command(version)]
