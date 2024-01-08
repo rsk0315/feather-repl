@@ -1,6 +1,8 @@
 use std::ops::Range;
 
 use combine::{easy::Errors, stream::PointerOffset};
+use num::{FromPrimitive, One, Signed, Zero};
+use num_rational::BigRational;
 use yansi::Style;
 
 use crate::{
@@ -10,11 +12,11 @@ use crate::{
     utils::StrPaint,
 };
 
-pub fn str_emph_correct(approx: &DecimalTuple, truth: &DecimalTuple) -> String {
+fn str_emph_correct(approx: &DecimalTuple, truth: &DecimalTuple) -> String {
     let s = approx.to_string();
     let len = match approx.lcp_len(truth) {
         Some(len) => len,
-        None => return s.fg(EMPH_COLOR).to_string(),
+        None => return Style::default().bold().paint(s).to_string(),
     };
 
     if len < s.len() {
@@ -28,6 +30,42 @@ pub fn str_emph_correct(approx: &DecimalTuple, truth: &DecimalTuple) -> String {
     }
 }
 
+fn str_approx(approx: &DecimalTuple, truth: &DecimalTuple) -> String {
+    let rat_approx = BigRational::from(approx.to_owned());
+    let rat_truth = BigRational::from(truth.to_owned());
+
+    let t = if truth.is_repetitive() {
+        rat_truth.to_string()
+    } else {
+        truth.to_string()
+    };
+
+    if rat_approx == rat_truth {
+        return t;
+    }
+
+    let abs = &rat_approx - &rat_truth;
+    let rel = &abs / &rat_truth;
+    let num_tz = rel.numer().trailing_zeros().unwrap_or(0) as i32;
+    let den_tz = rel.denom().trailing_zeros().unwrap_or(0) as i32;
+    let exp = num_tz - den_tz;
+    let rel = rel.abs() / BigRational::from_i32(2).unwrap().pow(exp);
+
+    if rel.is_one() {
+        format!(
+            "{t} * (1 {} {})",
+            if abs.is_positive() { '+' } else { '-' },
+            if exp == 0 { "1".to_owned() } else { format!("2^{{{exp}}}") }
+        )
+    } else {
+        format!(
+            "{t} * (1 {} {rel}{})",
+            if abs.is_positive() { '+' } else { '-' },
+            if exp == 0 { "".to_owned() } else { format!(" * 2^{{{exp}}}") }
+        )
+    }
+}
+
 pub fn frontmatter(filename: &str, lineno: usize) {
     eprintln!(
         "{}{filename}:{lineno}{}",
@@ -38,7 +76,9 @@ pub fn frontmatter(filename: &str, lineno: usize) {
 
 pub fn backmatter(s: &str, result: Result<(ValueTy, Range<usize>), EvalError>) {
     match result {
-        Ok(_) => eprintln!("{}", "─╯".fg(DARK_COLOR).dimmed()),
+        Ok(_) => {
+            eprintln!("{}", "─╯".fg(DARK_COLOR).dimmed());
+        }
         Err(e) => {
             let mut out = "\n".to_owned();
             out += &match e {
@@ -68,14 +108,42 @@ pub fn estimate(
 ) {
     let (rat, flt) = expr;
 
-    let msg =
-        format!("default output: {}", EMPH_COLOR.style().bold().paint(flt));
+    let msg = format!(
+        "{}: {:?}\n",
+        Style::default().bold().paint("{this:?}"),
+        EMPH_COLOR.style().bold().paint(flt)
+    );
 
     let mut out = "\n".to_owned();
     out += &format!(
         "{}",
         s.paint_range_msg(EMPH_COLOR.style().bold(), range, &msg)
     );
+
+    out += "\n";
+    out += &format!("truth: {rat}\n");
+    if !rat.is_integer() {
+        out += &format!("     = {}\n", DecimalTuple::from(rat.to_owned()));
+    }
+
+    let d_rat = DecimalTuple::from(rat.to_owned());
+    let f = if flt.is_nan() {
+        "nan".to_owned()
+    } else if flt.is_infinite() {
+        (if flt.is_positive() { "infinity" } else { "-infinity" }).to_owned()
+    } else if *flt == 0.0 && flt.is_sign_negative() {
+        // note: to produce -0.0 without the unary minus, e.g.
+        // `1 / ((0 - 1) / (1e20 + 1 - 1e20))`.
+        "-0".to_owned()
+    } else {
+        let d_flt = DecimalTuple::from(BigRational::from_float(*flt).unwrap());
+        str_emph_correct(&d_flt, &d_rat)
+    };
+    out += &format!("float: {}\n", f);
+    if !rat.is_zero() && flt.is_finite() {
+        let d_flt = DecimalTuple::from(BigRational::from_float(*flt).unwrap());
+        out += &format!("     = {}\n", str_approx(&d_flt, &d_rat));
+    }
 
     lined(&out, |i| {
         if i == 1 { DARK_COLOR.style() } else { DARK_COLOR.style().dimmed() }

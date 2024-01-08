@@ -27,9 +27,12 @@ where
                     optional(choice([char('+'), char('-')])),
                     many1(digit()),
                 ))
-                .then(|(_, s): (Option<_>, String)| match s.parse::<i32>() {
-                    Ok(x) => value(x).left(),
-                    Err(e) => unexpected_any(Format(e)).right(),
+                .then(|(sgn, exp): (Option<_>, String)| {
+                    match format!("{}{exp}", sgn.unwrap_or('+')).parse::<i32>()
+                    {
+                        Ok(x) => value(x).left(),
+                        Err(e) => unexpected_any(Format(e)).right(),
+                    }
                 }),
         ),
     );

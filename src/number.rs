@@ -146,6 +146,8 @@ impl DecimalTuple {
     pub fn is_integer(&self) -> bool {
         self.frac_once.is_empty() && self.frac_rep.is_empty()
     }
+
+    pub fn is_repetitive(&self) -> bool { !self.frac_rep.is_empty() }
 }
 
 impl std::fmt::Display for DecimalTuple {

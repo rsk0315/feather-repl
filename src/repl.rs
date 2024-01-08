@@ -45,18 +45,12 @@ pub fn repl(opts: ReplOptions) -> rustyline::Result<()> {
         match readline {
             Ok(line) if line.trim().is_empty() => {}
             Ok(line) => {
-                if let Err(e) = eval_line(&line, &opts) {
-                    eprintln!("{e}");
-                }
-                eprintln!("read: {}", line.bold());
                 rl.add_history_entry(line.to_owned())?;
 
                 frontmatter("stdin", nl);
                 match parse_line().easy_parse(line.as_str()) {
                     Ok(ast) => backmatter(&line, ast.0.eval(&line, &())),
-                    Err(e) => {
-                        error_report(e, &line);
-                    }
+                    Err(e) => error_report(e, &line),
                 }
             }
 
@@ -77,12 +71,5 @@ pub fn repl(opts: ReplOptions) -> rustyline::Result<()> {
 
     rl.save_history(&histfile)?;
 
-    Ok(())
-}
-
-pub fn eval_line(
-    line: &str,
-    opt: &ReplOptions,
-) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
