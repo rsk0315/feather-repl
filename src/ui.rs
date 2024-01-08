@@ -68,7 +68,7 @@ fn str_approx(approx: &DecimalTuple, truth: &DecimalTuple) -> String {
 
 pub fn frontmatter(filename: &str, lineno: usize) {
     eprintln!(
-        "{}{filename}:{lineno}{}",
+        "\n{}{filename}:{lineno}{}",
         " ╭─[".fg(DARK_COLOR),
         "]".fg(DARK_COLOR)
     );
