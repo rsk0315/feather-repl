@@ -37,3 +37,11 @@ Install [`git`](https://www.git-scm.com/downloads) and [`cargo`](https://rustup.
 ![Screenshot 3](images/screenshot-3.png)
 
 ![Screenshot 4](images/screenshot-4.png)
+
+![Screenshot 5](images/screenshot-5.png)
+
+![Screenshot 6](images/screenshot-6.png)
+
+![Screenshot 7](images/screenshot-7.png)
+
+![Screenshot 8](images/screenshot-8.png)
