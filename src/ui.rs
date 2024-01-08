@@ -88,7 +88,13 @@ pub fn backmatter(s: &str, result: Result<(ValueTy, Range<usize>), EvalError>) {
                     "divide by zero",
                 ),
             };
-            lined(&out, |_| ERR_COLOR.style().dimmed());
+            lined(&out, |i| {
+                if i == 1 {
+                    ERR_COLOR.style()
+                } else {
+                    ERR_COLOR.style().dimmed()
+                }
+            });
             eprintln!("{}", "─╯".fg(ERR_COLOR).dimmed());
         }
     }
