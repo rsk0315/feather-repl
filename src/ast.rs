@@ -3,8 +3,9 @@ use std::ops::Range;
 use combine::stream::PointerOffset;
 use num::{FromPrimitive, Zero};
 use num_rational::BigRational;
+use yansi::Style;
 
-use crate::{number::DecimalTuple, ui::estimate};
+use crate::{number::DecimalTuple, repl::VERSION, ui::estimate};
 
 #[derive(Clone, Copy, Default, Eq, PartialEq)]
 struct EstimateContext {
@@ -52,6 +53,19 @@ impl EstimateContext {
     }
 }
 
+impl std::fmt::Display for EstimateContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let sgn = |o| if o { '+' } else { '-' };
+        write!(
+            f,
+            "{}lit,{}par,{}bin",
+            sgn(self.literal),
+            sgn(self.paren),
+            sgn(self.binary)
+        )
+    }
+}
+
 #[derive(Clone, Copy, Default, Eq, PartialEq)]
 pub struct EvalOptions {
     estimate: EstimateContext,
@@ -72,14 +86,40 @@ impl EvalOptions {
         for s in arg.split(";").map(|s| s.trim()) {
             let mut it = s.splitn(2, "=").map(|s| s.trim());
             if let Some(key) = it.next() {
-                let rem: String =
+                let rem: Vec<String> =
                     it.next().into_iter().map(|s| s.to_owned()).collect();
                 match key {
-                    "estimate" => self.set_estimate(vec![rem]),
+                    "estimate" if rem.is_empty() => self.print_estimate(),
+                    "estimate" => self.set_estimate(rem),
+                    "help" => self.help(),
+                    "version" => self.version(),
                     _ => eprintln!("unexpected key: {key}"),
                 }
             }
         }
+    }
+
+    fn help(&self) {
+        eprintln!(
+            r#"
+:help       Print this message
+:version    Print the version
+
+:estimate[=arg]
+            Which subexpressions to estimate.
+            Current value is "{}". "lit", "par", and "bin" means
+            literals, parentheses, and binary operations respectively.
+"#,
+            Style::default().bold().paint(self.estimate)
+        );
+    }
+
+    fn version(&self) {
+        eprintln!("v{}\n", VERSION.unwrap_or("?.?.?"));
+    }
+
+    fn print_estimate(&self) {
+        eprintln!(":estimate={}\n", self.estimate);
     }
 
     pub fn do_estimate(&self, ctx: &EvalContext) -> bool {
