@@ -13,21 +13,42 @@ struct EstimateContext {
     binary: bool,
 }
 
+const CTX_LIT: u32 = 1 << 0;
+const CTX_PAR: u32 = 1 << 1;
+const CTX_BIN: u32 = 1 << 2;
+
 impl EstimateContext {
     pub fn update(&mut self, arg: Vec<String>) {
         for arg in arg {
             for s in arg.split(",").map(|s| s.trim()) {
                 match s {
-                    "lit" | "+lit" => self.literal = true,
-                    "par" | "+par" => self.paren = true,
-                    "bin" | "+bin" => self.binary = true,
-                    "-lit" => self.literal = false,
-                    "-par" => self.paren = false,
-                    "-bin" => self.binary = false,
+                    "lit" => self.set_bits(CTX_LIT),
+                    "par" => self.set_bits(CTX_PAR),
+                    "bin" => self.set_bits(CTX_BIN),
+                    "+lit" => self.set_bits(self.get_bits() | CTX_LIT),
+                    "+par" => self.set_bits(self.get_bits() | CTX_PAR),
+                    "+bin" => self.set_bits(self.get_bits() | CTX_BIN),
+                    "-lit" => self.set_bits(self.get_bits() | !CTX_LIT),
+                    "-par" => self.set_bits(self.get_bits() | !CTX_PAR),
+                    "-bin" => self.set_bits(self.get_bits() | !CTX_BIN),
+                    "each" | "+each" => self.set_bits(!0),
+                    "-each" => self.set_bits(0),
                     _ => eprintln!("unexpected value: {s}"),
                 }
             }
         }
+    }
+
+    fn set_bits(&mut self, bits: u32) {
+        self.literal = bits & CTX_LIT != 0;
+        self.paren = bits & CTX_PAR != 0;
+        self.binary = bits & CTX_BIN != 0;
+    }
+
+    fn get_bits(&self) -> u32 {
+        (CTX_LIT * self.literal as u32)
+            | (CTX_PAR * self.paren as u32)
+            | (CTX_BIN * self.binary as u32)
     }
 }
 
