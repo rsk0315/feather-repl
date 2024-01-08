@@ -103,6 +103,7 @@ impl DecimalTuple {
         let (sgn_r, uint_r) = (other.sign, &other.int);
 
         if sgn_l != sgn_r {
+            // XXX: 0 (NoSign) and 0.1 (Plus)
             return Some(0);
         }
 
@@ -329,6 +330,10 @@ mod tests_lcp {
         (("12.0", "12.2"), Some(3)),
         (("1.0", "1.(001)"), Some(4)),
         (("-1.0", "-1.5"), Some(3)),
+        (("0.001", "0"), Some(4)),
+        (("0", "0.001"), Some(4)),
+        (("-0.001", "0"), Some(5)),
+        (("-0.001", "0.001"), Some(5)), // ?
         (("1", "1"), None),
         (("-1", "-1"), None),
     ];
