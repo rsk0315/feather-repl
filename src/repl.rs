@@ -8,13 +8,11 @@ use rustyline::{
 
 use crate::{
     ast::EvalOptions,
-    constants::AUX_COLOR,
+    constants::{AUX_COLOR, PROLOGUE},
     parser::parse_line,
     ui::{backmatter, error_report, frontmatter},
     utils::StrPaint,
 };
-
-pub const VERSION: Option<&str> = option_env!("CARGO_PKG_VERSION");
 
 pub struct ReplOptions {
     estimate: Vec<String>,
@@ -36,6 +34,8 @@ impl ReplOptions {
 pub fn repl(opts: ReplOptions) -> rustyline::Result<()> {
     let cfg = Config::builder().behavior(Behavior::PreferTerm).build();
     let mut rl = DefaultEditor::with_config(cfg)?;
+
+    eprintln!("{PROLOGUE}");
 
     let histfile = get_my_home().unwrap().unwrap().join(".float_repl_history");
 

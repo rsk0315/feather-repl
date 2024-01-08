@@ -5,7 +5,7 @@ use num::{FromPrimitive, Zero};
 use num_rational::BigRational;
 use yansi::Style;
 
-use crate::{number::DecimalTuple, repl::VERSION, ui::estimate};
+use crate::{constants::VERSION, number::DecimalTuple, ui::estimate};
 
 #[derive(Clone, Copy, Default, Eq, PartialEq)]
 struct EstimateContext {
