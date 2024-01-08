@@ -167,6 +167,17 @@ impl std::fmt::Display for DecimalTuple {
     }
 }
 
+impl From<DecimalTuple> for BigRational {
+    fn from(dec: DecimalTuple) -> Self {
+        DecimalTuple::to_rational(
+            dec.sign,
+            dec.int,
+            dec.frac_once,
+            dec.frac_rep,
+        )
+    }
+}
+
 impl From<BigRational> for DecimalTuple {
     fn from(rat: BigRational) -> Self {
         let (sgn, mag) = (rat.signum(), rat.abs());

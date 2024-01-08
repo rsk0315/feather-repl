@@ -1,5 +1,7 @@
 use combine::{
-    attempt, between, chainl1, choice, many1, parser,
+    attempt, between, chainl1, choice,
+    error::Format,
+    many1, optional, parser,
     parser::{
         char::{char, digit, spaces},
         choice::ChoiceParser,
@@ -7,10 +9,41 @@ use combine::{
     },
     position,
     stream::PointerOffset,
-    Parser, Stream, StreamOnce,
+    unexpected_any, value, Parser, Stream, StreamOnce,
 };
 
-use crate::ast::Expr;
+use crate::ast::{Expr, LitComponent};
+
+fn parse_literal_<Input>() -> impl Parser<Input, Output = LitComponent>
+where
+    Input: Stream<Token = char> + StreamOnce<Position = PointerOffset<str>>,
+{
+    let tok = (
+        many1(digit()),
+        optional((char('.'), many1(digit()))),
+        optional(
+            choice([char('E'), char('e')])
+                .with((
+                    optional(choice([char('+'), char('-')])),
+                    many1(digit()),
+                ))
+                .then(|(_, s): (Option<_>, String)| match s.parse::<i32>() {
+                    Ok(x) => value(x).left(),
+                    Err(e) => unexpected_any(Format(e)).right(),
+                }),
+        ),
+    );
+    tok.map(
+        |(int, frac, exp): (String, Option<(char, String)>, Option<i32>)| {
+            let mut digits = int;
+            if let Some((_, frac)) = frac {
+                digits += ".";
+                digits.extend(frac.chars());
+            }
+            LitComponent::new(digits, exp.unwrap_or(0))
+        },
+    )
+}
 
 fn op<Input, const N: usize>(
     s: [char; N],
@@ -58,10 +91,19 @@ fn parse_factor_<Input>() -> impl Parser<Input, Output = Expr>
 where
     Input: Stream<Token = char> + StreamOnce<Position = PointerOffset<str>>,
 {
-    let literal = (position(), many1(digit()), position())
+    let literal = (position(), parse_literal(), position())
         .map(|(pos_l, lit, pos_r)| (Expr::Literal(lit, pos_l..pos_r)));
     let parens = between(char('('), char(')'), parse_expr());
     literal.or(parens)
+}
+
+parser! {
+    fn parse_literal[Input]()(Input) -> LitComponent
+    where
+        [Input: Stream<Token = char> + StreamOnce<Position = PointerOffset<str>>]
+    {
+        parse_literal_()
+    }
 }
 
 parser! {
@@ -99,8 +141,13 @@ mod tests {
 
     #[test]
     fn test() {
-        let s = "1 * (2 - 3 + 4) / 5 ";
+        let s = "1 * (2 - 3 + 4) / 5";
         let actual = parse_expr().easy_parse(s);
         assert!(actual.is_ok());
+
+        assert_eq!(
+            actual.unwrap().0.eval(s, &()),
+            (("3/5".parse().unwrap(), 0.6), 0..s.len())
+        );
     }
 }
