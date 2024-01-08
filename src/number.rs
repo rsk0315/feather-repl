@@ -98,13 +98,17 @@ impl DecimalTuple {
     /// - `lcp_len(10.0, 1.0)`: 0 (with properly padded)
     /// - `lcp_len(-1.2, -3.4)`: 1 (minus sign)
     /// - `lcp_len(-1.0, -10.0)`: 1 (minus sign)
+    /// - `lcp_len(-0.01, 0.0)`: 4 (with properly padded)
+    /// - `lcp_len(-0.1, 0.1)`: 0 (strictly opposite signs)
     pub fn lcp_len(&self, other: &DecimalTuple) -> Option<usize> {
         let (sgn_l, uint_l) = (self.sign, &self.int);
         let (sgn_r, uint_r) = (other.sign, &other.int);
 
-        if sgn_l != sgn_r {
-            // XXX: 0 (NoSign) and 0.1 (Plus)
-            return Some(0);
+        match (sgn_l, sgn_r) {
+            (x, y) if x == y => {}
+            (NoSign, Plus) | (NoSign, Minus) if uint_r.is_zero() => {}
+            (Plus, NoSign) | (Minus, NoSign) if uint_l.is_zero() => {}
+            _ => return Some(0),
         }
 
         let s_uint_l = uint_l.to_string();
@@ -335,7 +339,7 @@ mod tests_lcp {
         (("0.001", "0"), Some(4)),
         (("0", "0.001"), Some(4)),
         (("-0.001", "0"), Some(5)),
-        (("-0.001", "0.001"), Some(5)), // ?
+        (("-0.001", "0.001"), Some(0)),
         (("1", "1"), None),
         (("-1", "-1"), None),
     ];
@@ -345,6 +349,7 @@ mod tests_lcp {
         for &((lhs, rhs), expected) in TEST_SUITE {
             let lhs: DecimalTuple = lhs.parse().unwrap();
             let rhs: DecimalTuple = rhs.parse().unwrap();
+            eprintln!("{lhs} {rhs}");
             assert_eq!(lhs.lcp_len(&rhs), expected);
         }
     }
