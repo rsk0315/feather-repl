@@ -152,12 +152,33 @@ pub fn estimate(
 
 pub fn error_report(err: Errors<char, &str, PointerOffset<str>>, s: &str) {
     let pos = err.position.translate_position(s);
-    eprintln!("{}", s.paint_at(ERR_COLOR.style().bold(), pos));
-    eprintln!("{0:>1$}", "^".fg(ERR_COLOR), pos + 1);
-    eprintln!("errors:");
+    let eof = if pos >= s.len() {
+        "$".fg(DARK_COLOR).dimmed().to_string()
+    } else {
+        "".to_owned()
+    };
+    let mut out = vec![
+        "".to_owned(),
+        format!("{}{eof}", s.paint_at(ERR_COLOR.style().bold(), pos)),
+        format!("{0:>1$}", "┬".fg(ERR_COLOR), pos + 1),
+        format!("{0:>1$}", "╰── parse error".fg(ERR_COLOR), pos + 15),
+        "".to_owned(),
+        format!("{}", "errors:".fg(DARK_COLOR)),
+    ];
     for e in err.errors {
-        println!("{}", e.to_string().fg(ERR_COLOR));
+        out.push(format!(
+            " {}  {}",
+            "*".fg(DARK_COLOR).dimmed(),
+            e.to_string().fg(DARK_COLOR)
+        ));
     }
+    let out: String = out.join("\n");
+    lined(&out, |i| match i {
+        0 => DARK_COLOR.style().dimmed(),
+        1 => ERR_COLOR.style(),
+        _ => ERR_COLOR.style().dimmed(),
+    });
+    eprintln!("{}", "─╯".fg(ERR_COLOR).dimmed());
 }
 
 #[cfg(test)]
