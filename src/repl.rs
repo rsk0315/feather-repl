@@ -1,3 +1,4 @@
+use combine::EasyParser;
 use homedir::get_my_home;
 use rustyline::{
     config::{Behavior, Config},
@@ -5,7 +6,9 @@ use rustyline::{
     DefaultEditor,
 };
 
-use crate::{constants::AUX_COLOR, utils::StrPaint};
+use crate::{
+    constants::AUX_COLOR, parser::parse_line, ui::error_report, utils::StrPaint,
+};
 
 pub struct ReplOptions {
     each_expr: bool,
@@ -43,8 +46,18 @@ pub fn repl(opts: ReplOptions) -> rustyline::Result<()> {
                     eprintln!("{e}");
                 }
                 eprintln!("read: {}", line.bold());
-                rl.add_history_entry(line)?;
+                rl.add_history_entry(line.to_owned())?;
+
+                match parse_line().easy_parse(line.as_str()) {
+                    Ok(ast) => {
+                        ast.0.eval(&line, &());
+                    }
+                    Err(e) => {
+                        error_report(e, &line);
+                    }
+                }
             }
+
             Err(ReadlineError::Interrupted) => {
                 eprintln!("^C");
                 continue;

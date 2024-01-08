@@ -4,7 +4,7 @@ use combine::stream::PointerOffset;
 use num::FromPrimitive;
 use num_rational::BigRational;
 
-use crate::number::DecimalTuple;
+use crate::{number::DecimalTuple, ui::estimate};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LitComponent {
@@ -34,16 +34,16 @@ pub enum Expr {
     Div(Box<Expr>, Box<Expr>, Range<PointerOffset<str>>),
     Add(Box<Expr>, Box<Expr>, Range<PointerOffset<str>>),
     Sub(Box<Expr>, Box<Expr>, Range<PointerOffset<str>>),
+    Paren(Box<Expr>, Range<PointerOffset<str>>),
     Neg(Box<Expr>, Range<PointerOffset<str>>),
 }
 
-type EvalOptions = (); // temporary
-
-type ValueTy = (BigRational, f64);
+pub type EvalOptions = (); // temporary
+pub type ValueTy = (BigRational, f64);
 
 impl Expr {
     pub fn eval(self, s: &str, opts: &EvalOptions) -> (ValueTy, Range<usize>) {
-        match self {
+        let (val, range) = match self {
             Expr::Literal(lit, range) => {
                 let start = range.start.translate_position(s);
                 let end = range.end.translate_position(s);
@@ -73,11 +73,20 @@ impl Expr {
                 let range = lhs.1.start..rhs.1.end;
                 ((lhs.0.0 - rhs.0.0, lhs.0.1 - rhs.0.1), range)
             }
+            Expr::Paren(inner, range) => {
+                let inner = inner.eval(s, opts);
+                let start = range.start.translate_position(s);
+                let end = range.end.translate_position(s);
+                (inner.0, start..end)
+            }
             Expr::Neg(rhs, range) => {
                 let rhs = rhs.eval(s, opts);
                 let range = range.start.translate_position(s)..rhs.1.end;
                 ((-rhs.0.0, -rhs.0.1), range)
             }
-        }
+        };
+
+        estimate(&val, range.clone(), s, opts);
+        (val, range)
     }
 }

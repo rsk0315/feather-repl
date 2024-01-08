@@ -1,5 +1,5 @@
 use combine::{
-    attempt, between, chainl1, choice,
+    attempt, chainl1, choice, eof,
     error::Format,
     many1, optional, parser,
     parser::{
@@ -93,7 +93,12 @@ where
 {
     let literal = (position(), parse_literal(), position())
         .map(|(pos_l, lit, pos_r)| (Expr::Literal(lit, pos_l..pos_r)));
-    let parens = between(char('('), char(')'), parse_expr());
+    let parens = (
+        position(),
+        (char('('), spaces()).with(parse_expr()).skip((spaces(), char(')'))),
+        position(),
+    )
+        .map(|(pos_l, x, pos_r)| Expr::Paren(Box::new(x), pos_l..pos_r));
     literal.or(parens)
 }
 
@@ -133,6 +138,15 @@ parser! {
     }
 }
 
+parser! {
+    pub fn parse_line[Input]()(Input) -> Expr
+    where
+        [Input: Stream<Token = char> + StreamOnce<Position = PointerOffset<str>>]
+    {
+        spaces().with(parse_expr()).skip((spaces(), eof()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use combine::EasyParser;
@@ -142,7 +156,7 @@ mod tests {
     #[test]
     fn test() {
         let s = "1 * (2 - 3 + 4) / 5";
-        let actual = parse_expr().easy_parse(s);
+        let actual = parse_line().easy_parse(s);
         assert!(actual.is_ok());
 
         assert_eq!(

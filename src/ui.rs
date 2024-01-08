@@ -1,4 +1,9 @@
+use std::ops::Range;
+
+use combine::{easy::Errors, stream::PointerOffset};
+
 use crate::{
+    ast::{EvalOptions, ValueTy},
     constants::{DARK_COLOR, EMPH_COLOR},
     number::DecimalTuple,
     utils::StrPaint,
@@ -19,6 +24,30 @@ pub fn str_emph_correct(approx: &DecimalTuple, truth: &DecimalTuple) -> String {
     } else {
         let s0 = format!("{0:0<1$}", s, len);
         format!("{}{}", s0.bold(), "(0...)".fg(DARK_COLOR))
+    }
+}
+
+pub fn estimate(
+    expr: &ValueTy,
+    range: Range<usize>,
+    s: &str,
+    opts: &EvalOptions,
+) {
+    let (rat, flt) = expr;
+    eprintln!("{s}");
+    eprintln!(
+        "{0}{1:~^2$}",
+        " ".repeat(range.start),
+        '^',
+        range.end - range.start
+    );
+}
+
+pub fn error_report(err: Errors<char, &str, PointerOffset<str>>, s: &str) {
+    eprintln!("position: {}", err.position.translate_position(s));
+    eprintln!("errors:");
+    for e in err.errors {
+        println!("{e}");
     }
 }
 
