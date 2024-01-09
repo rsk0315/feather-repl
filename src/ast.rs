@@ -104,6 +104,8 @@ impl EvalOptions {
             r#"
 :help       Print this message
 :version    Print the version
+:quit       Quit
+:exit       Same as :quit
 
 :estimate[=arg]
             Which subexpressions to estimate.

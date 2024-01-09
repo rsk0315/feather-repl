@@ -48,6 +48,7 @@ pub fn repl(opts: ReplOptions) -> rustyline::Result<()> {
         let readline = rl.readline(&">> ".fg(AUX_COLOR).to_string());
         match readline {
             Ok(line) if line.trim().is_empty() => {}
+            Ok(line) if [":exit", ":quit"].contains(&line.trim()) => break,
             Ok(line) if line.starts_with(":") => {
                 rl.add_history_entry(line.to_owned())?;
                 opts.update(&line[1..]);
